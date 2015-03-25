@@ -17,75 +17,86 @@
  * ndnSIM, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#include "ndn-producer-seq.hpp"
+#include "ndn-producer-realtime.hpp"
 #include "ns3/log.h"
 #include "ns3/string.h"
 #include "ns3/uinteger.h"
 #include "ns3/packet.h"
 #include "ns3/simulator.h"
+#include "ns3/double.h"
 
 #include "model/ndn-app-face.hpp"
 #include "model/ndn-ns3.hpp"
 #include "model/ndn-l3-protocol.hpp"
 #include "helper/ndn-fib-helper.hpp"
 
+#include <iostream>
+
 #include <memory>
 
-NS_LOG_COMPONENT_DEFINE("ndn.ProducerSeq");
+NS_LOG_COMPONENT_DEFINE("ndn.ProducerR");
 
 namespace ns3 {
 namespace ndn {
 
-NS_OBJECT_ENSURE_REGISTERED(ProducerSeq);
+NS_OBJECT_ENSURE_REGISTERED(ProducerR);
 
 TypeId
-ProducerSeq::GetTypeId(void)
+ProducerR::GetTypeId(void)
 {
   static TypeId tid =
-    TypeId("ns3::ndn::ProducerSeq")
+    TypeId("ns3::ndn::ProducerR")
       .SetGroupName("Ndn")
       .SetParent<App>()
-      .AddConstructor<ProducerSeq>()
+      .AddConstructor<ProducerR>()
       .AddAttribute("Prefix", "Prefix, for which producer has the data", StringValue("/"),
-                    MakeNameAccessor(&ProducerSeq::m_prefix), MakeNameChecker())
+                    MakeNameAccessor(&ProducerR::m_prefix), MakeNameChecker())
       .AddAttribute(
          "Postfix",
          "Postfix that is added to the output data (e.g., for adding producer-uniqueness)",
-         StringValue("/"), MakeNameAccessor(&ProducerSeq::m_postfix), MakeNameChecker())
+         StringValue("/"), MakeNameAccessor(&ProducerR::m_postfix), MakeNameChecker())
       .AddAttribute("PayloadSize", "Virtual payload size for Content packets", UintegerValue(1024),
-                    MakeUintegerAccessor(&ProducerSeq::m_virtualPayloadSize),
+                    MakeUintegerAccessor(&ProducerR::m_virtualPayloadSize),
                     MakeUintegerChecker<uint32_t>())
       .AddAttribute("Freshness", "Freshness of data packets, if 0, then unlimited freshness",
-                    TimeValue(Seconds(0)), MakeTimeAccessor(&ProducerSeq::m_freshness),
+                    TimeValue(Seconds(0)), MakeTimeAccessor(&ProducerR::m_freshness),
                     MakeTimeChecker())
       .AddAttribute(
          "Signature",
          "Fake signature, 0 valid signature (default), other values application-specific",
-         UintegerValue(0), MakeUintegerAccessor(&ProducerSeq::m_signature),
+         UintegerValue(0), MakeUintegerAccessor(&ProducerR::m_signature),
          MakeUintegerChecker<uint32_t>())
       .AddAttribute("KeyLocator",
                     "Name to be used for key locator.  If root, then key locator is not used",
-                    NameValue(), MakeNameAccessor(&ProducerSeq::m_keyLocator), MakeNameChecker());
+                    NameValue(), MakeNameAccessor(&ProducerR::m_keyLocator), MakeNameChecker())
+
+      .AddAttribute("Frequency", "Frequency of data packet generate", StringValue("1.0"),
+                    MakeDoubleAccessor(&ProducerR::m_frequency), MakeDoubleChecker<double>());
+
   return tid;
 }
 
-ProducerSeq::ProducerSeq()
+ProducerR::ProducerR()
+  : m_seq(0)
+  , m_frequency(1.0)
 {
   NS_LOG_FUNCTION_NOARGS();
 }
 
 // inherited from Application base class.
 void
-ProducerSeq::StartApplication()
+ProducerR::StartApplication()
 {
   NS_LOG_FUNCTION_NOARGS();
   App::StartApplication();
 
   FibHelper::AddRoute(GetNode(), m_prefix, m_face, 0);
+
+  ScheduleNextData();
 }
 
 void
-ProducerSeq::StopApplication()
+ProducerR::StopApplication()
 {
   NS_LOG_FUNCTION_NOARGS();
 
@@ -93,19 +104,8 @@ ProducerSeq::StopApplication()
 }
 
 void
-ProducerSeq::OnInterest(shared_ptr<const Interest> interest)
+ProducerR::SendData(const Name &dataName)
 {
-  App::OnInterest(interest); // tracing inside
-
-  NS_LOG_FUNCTION(this << interest);
-
-  if (!m_active)
-    return;
-
-  Name dataName(interest->getName());
-  // dataName.append(m_postfix);
-  // dataName.appendVersion();
-
   auto data = make_shared<Data>();
   data->setName(dataName);
   data->setFreshnessPeriod(::ndn::time::milliseconds(m_freshness.GetMilliSeconds()));
@@ -131,6 +131,62 @@ ProducerSeq::OnInterest(shared_ptr<const Interest> interest)
 
   m_transmittedDatas(data, this, m_face);
   m_face->onReceiveData(*data);
+
+  // cout name in string
+  // std::cout << dataName.toUri() << std::endl;
+  // cout sequecenumber in int
+  std::cout << " send data:" << dataName.at(-1).toSequenceNumber() << std::endl;
+}
+
+void
+ProducerR::OnInterest(shared_ptr<const Interest> interest)
+{
+  App::OnInterest(interest); // tracing inside
+
+  NS_LOG_FUNCTION(this << interest);
+
+  if (!m_active)
+    return;
+
+  Name dataName(interest->getName());
+  // dataName.append(m_postfix);
+  // dataName.appendVersion();
+  
+  auto seq = dataName.at(-1).toSequenceNumber();
+
+  std::cout << "[producer]receive comsumer request: " << seq ;
+  // if requested seq > producer has produced, stop
+  if ( seq > m_seq ) {
+    std::cout << "  but i don`t have..." << std::endl;
+    return;
+  }
+
+  SendData(dataName);
+}
+
+void
+ProducerR::ScheduleNextData()
+{
+  if ( !m_seq) {
+    m_generateEvent = Simulator :: Schedule(Seconds(0.0), &ProducerR::GenerateData, this);
+  }
+  else if ( !m_generateEvent.IsRunning()) {
+    m_generateEvent = Simulator :: Schedule(Seconds(1.0 / m_frequency), &ProducerR::GenerateData, this);
+  }
+}
+
+// Attention! not really generate data, just add seq number pretend to generate data 
+void
+ProducerR::GenerateData()
+{
+  if (m_seq != std::numeric_limits<uint32_t>::max()) {
+    // generate data and plus seq number
+    m_seq++;
+
+    std::cout << "[producer]generate data:" << m_seq << std::endl;
+    // schedule to generate next data
+    ScheduleNextData();
+  }
 }
 
 } // namespace ndn

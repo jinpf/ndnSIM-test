@@ -17,8 +17,8 @@
  * ndnSIM, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#ifndef NDN_PRODUCER_SEQ_H
-#define NDN_PRODUCER_SEQ_H
+#ifndef NDN_PRODUCER_R_H
+#define NDN_PRODUCER_R_H
 
 #include "ns3/ndnSIM/model/ndn-common.hpp"
 
@@ -39,25 +39,46 @@ namespace ndn {
  * which replying every incoming Interest with Data packet with a specified
  * size and name same as in Interest.cation, which replying every incoming Interest
  * with Data packet with a specified size and name same as in Interest.
+ * 
+ * The difference between ProducerR and Producer is that, Producer respond data
+ * immediately after receiving Interest packet. But ProducerR generate data at a 
+ * random time
  */
-class ProducerSeq : public App {
+class ProducerR : public App {
 public:
   static TypeId
   GetTypeId(void);
 
-  ProducerSeq();
+  ProducerR();
+
+  // senddata with name
+  void
+  SendData(const Name &dataname);
 
   // inherited from NdnApp
   virtual void
   OnInterest(shared_ptr<const Interest> interest);
 
 protected:
+
+  uint32_t m_seq;  // current produced sequence number
+  double m_frequency;  // frequency of data packet gererating in 1 second
+  EventId m_generateEvent; // EventId of generate data event
+
   // inherited from Application base class.
   virtual void
   StartApplication(); // Called at time specified by Start
 
   virtual void
   StopApplication(); // Called at time specified by Stop
+
+ // schedule next generate
+  virtual void
+  ScheduleNextData();
+
+  // generate data
+  virtual void
+  GenerateData();
 
 private:
   Name m_prefix;
@@ -72,4 +93,4 @@ private:
 } // namespace ndn
 } // namespace ns3
 
-#endif // NDN_PRODUCER_SEQ_H
+#endif // NDN_PRODUCER_R_H
