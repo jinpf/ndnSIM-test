@@ -28,6 +28,8 @@
 #include "ns3/nstime.h"
 #include "ns3/ptr.h"
 
+#include "ns3/random-variable.h"
+
 namespace ns3 {
 namespace ndn {
 
@@ -50,6 +52,7 @@ public:
   GetTypeId(void);
 
   ProducerR();
+  virtual ~ProducerR();
 
   // senddata with name
   void
@@ -63,6 +66,8 @@ protected:
 
   uint32_t m_seq;  // current produced sequence number
   double m_frequency;  // frequency of data packet gererating in 1 second
+  RandomVariable *m_random;  // random
+  std::string m_randomType; //  random type: uniform or exponential
   EventId m_generateEvent; // EventId of generate data event
 
   // inherited from Application base class.
@@ -79,6 +84,14 @@ protected:
   // generate data
   virtual void
   GenerateData();
+
+  // set type of frequency randomization, 'none' 'uniform' 'exponential'
+  void
+  SetRandomize(const std::string &value);
+  
+  // get randomization type
+  std::string
+  GetRandomize() const;
 
 private:
   Name m_prefix;

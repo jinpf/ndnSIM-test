@@ -71,7 +71,13 @@ ProducerR::GetTypeId(void)
                     NameValue(), MakeNameAccessor(&ProducerR::m_keyLocator), MakeNameChecker())
 
       .AddAttribute("Frequency", "Frequency of data packet generate", StringValue("1.0"),
-                    MakeDoubleAccessor(&ProducerR::m_frequency), MakeDoubleChecker<double>());
+                    MakeDoubleAccessor(&ProducerR::m_frequency), MakeDoubleChecker<double>())
+
+      .AddAttribute("Randomize",
+                    "Type of send time randomization: none (default), uniform, exponential",
+                    StringValue("none"),
+                    MakeStringAccessor(&ProducerR::SetRandomize, &ProducerR::GetRandomize),
+                    MakeStringChecker());
 
   return tid;
 }
@@ -79,8 +85,15 @@ ProducerR::GetTypeId(void)
 ProducerR::ProducerR()
   : m_seq(0)
   , m_frequency(1.0)
+  , m_random(0)
 {
   NS_LOG_FUNCTION_NOARGS();
+}
+
+ProducerR::~ProducerR()
+{
+  if (m_random)
+    delete m_random;
 }
 
 // inherited from Application base class.
@@ -171,7 +184,9 @@ ProducerR::ScheduleNextData()
     m_generateEvent = Simulator :: Schedule(Seconds(0.0), &ProducerR::GenerateData, this);
   }
   else if ( !m_generateEvent.IsRunning()) {
-    m_generateEvent = Simulator :: Schedule(Seconds(1.0 / m_frequency), &ProducerR::GenerateData, this);
+    m_generateEvent = Simulator :: Schedule((m_random == 0) ? Seconds(1.0 / m_frequency)
+                                                                                                       : Seconds(m_random->GetValue()),
+                                                                          &ProducerR::GenerateData, this);
   }
 }
 
@@ -187,6 +202,29 @@ ProducerR::GenerateData()
     // schedule to generate next data
     ScheduleNextData();
   }
+}
+
+void
+ProducerR::SetRandomize(const std::string &value)
+{
+  if (m_random)
+    delete m_random;
+
+  if (value == "uniform") {
+    m_random = new UniformVariable(0.0, 2 * 1.0 / m_frequency);
+  }
+  else if (value == "exponential") {
+    m_random = new ExponentialVariable(1.0 / m_frequency, 50 * 1.0 / m_frequency);
+  }
+  else
+    m_random = 0;
+  m_randomType = value;
+}
+
+std::string
+ProducerR::GetRandomize() const
+{
+  return m_randomType;
 }
 
 } // namespace ndn

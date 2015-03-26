@@ -80,14 +80,15 @@ main(int argc, char* argv[])
 
   ndn::AppHelper consumerHelper("ns3::ndn::ConsumerCbr");
   consumerHelper.SetPrefix(prefix);
-  consumerHelper.SetAttribute("Frequency", StringValue("20")); // 100 interests a second
+  consumerHelper.SetAttribute("Frequency", StringValue("200")); // 100 interests a second
   // consumerHelper.SetAttribute("Randomize", StringValue("uniform"));
   consumerHelper.Install(consumerNodes);
 
   ndn::AppHelper producerHelper("ns3::ndn::ProducerR");
   producerHelper.SetPrefix(prefix);
   producerHelper.SetAttribute("PayloadSize", StringValue("1024"));
-  producerHelper.SetAttribute("Frequency", StringValue("10"));
+  producerHelper.SetAttribute("Frequency", StringValue("100"));
+  producerHelper.SetAttribute("Randomize", StringValue("exponential"));
   producerHelper.Install(producer);
 
   // Add /prefix origins to ndn::GlobalRouter
