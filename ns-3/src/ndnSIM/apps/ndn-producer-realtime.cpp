@@ -79,6 +79,8 @@ ProducerR::GetTypeId(void)
                     MakeStringAccessor(&ProducerR::SetRandomize, &ProducerR::GetRandomize),
                     MakeStringChecker());
 
+      // above code comes from ndn-producer and ndn-consumer-cbr
+
   return tid;
 }
 
