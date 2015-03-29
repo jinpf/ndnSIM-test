@@ -62,7 +62,7 @@ main(int argc, char* argv[])
   // Install NDN stack on all nodes
   ndn::StackHelper ndnHelper;
   // Set CS size
-  ndnHelper.setCsSize(1);
+  // ndnHelper.setCsSize(1);
   ndnHelper.InstallAll();
 
   // Set BestRoute strategy
@@ -85,6 +85,7 @@ main(int argc, char* argv[])
   ndn::AppHelper consumerHelper("ns3::ndn::ConsumerP");
   consumerHelper.SetPrefix(prefix);
   consumerHelper.SetAttribute("Frequency", StringValue("0.5")); // 100 interests a second
+  consumerHelper.SetAttribute("LifeTime", StringValue("3s"));
   // consumerHelper.SetAttribute("Randomize", StringValue("uniform"));
   for (int i = 0; i != 3; ++i) {
     consumerHelper.Install(consumerNodes[i]);
@@ -106,6 +107,10 @@ main(int argc, char* argv[])
   Simulator::Stop(Seconds(20.0));
 
   ndn::L3RateTracer::InstallAll("../graphs/rate-trace.txt", Seconds(0.5) );
+
+  L2RateTracer::InstallAll("../graphs/drop-trace.txt", Seconds(0.5));
+
+  ndn::AppDelayTracer::InstallAll("../graphs/app-delays-trace.txt");
 
   Simulator::Run();
   Simulator::Destroy();

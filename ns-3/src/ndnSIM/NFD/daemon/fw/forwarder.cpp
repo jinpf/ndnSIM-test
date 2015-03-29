@@ -91,35 +91,36 @@ Forwarder::onIncomingInterest(Face& inFace, const Interest& interest)
   // cancel unsatisfy & straggler timer
   this->cancelUnsatisfyAndStragglerTimer(pitEntry);
 
-  // is pending?
-  const pit::InRecordCollection& inRecords = pitEntry->getInRecords();
-  bool isPending = inRecords.begin() != inRecords.end();
-  if (!isPending) {
-    // CS lookup
-    const Data* csMatch;
-    shared_ptr<Data> match;
-    if (m_csFromNdnSim == nullptr)
-      csMatch = m_cs.find(interest);
-    else {
-      match = m_csFromNdnSim->Lookup(interest.shared_from_this());
-      csMatch = match.get();
-    }
-    if (csMatch != 0) {
-      const_cast<Data*>(csMatch)->setIncomingFaceId(FACEID_CONTENT_STORE);
-      // XXX should we lookup PIT for other Interests that also match csMatch?
+  // change code : no use CS , if ispending, forward anyway
+  // // is pending?
+  // const pit::InRecordCollection& inRecords = pitEntry->getInRecords();
+  // bool isPending = inRecords.begin() != inRecords.end();
+  // if (!isPending) {
+  //   // CS lookup    //change :no use CS
+  //   const Data* csMatch;
+  //   shared_ptr<Data> match;
+  //   if (m_csFromNdnSim == nullptr)
+  //     csMatch = m_cs.find(interest);
+  //   else {
+  //     match = m_csFromNdnSim->Lookup(interest.shared_from_this());
+  //     csMatch = match.get();
+  //   }
+  //   if (csMatch != 0) {
+  //     const_cast<Data*>(csMatch)->setIncomingFaceId(FACEID_CONTENT_STORE);
+  //     // XXX should we lookup PIT for other Interests that also match csMatch?
 
-      // invoke PIT satisfy callback
-      beforeSatisfyInterest(*pitEntry, *m_csFace, *csMatch);
-      this->dispatchToStrategy(pitEntry, bind(&Strategy::beforeSatisfyInterest, _1,
-                                              pitEntry, cref(*m_csFace), cref(*csMatch)));
-      // set PIT straggler timer
-      this->setStragglerTimer(pitEntry, true, csMatch->getFreshnessPeriod());
+  //     // invoke PIT satisfy callback
+  //     beforeSatisfyInterest(*pitEntry, *m_csFace, *csMatch);
+  //     this->dispatchToStrategy(pitEntry, bind(&Strategy::beforeSatisfyInterest, _1,
+  //                                             pitEntry, cref(*m_csFace), cref(*csMatch)));
+  //     // set PIT straggler timer
+  //     this->setStragglerTimer(pitEntry, true, csMatch->getFreshnessPeriod());
 
-      // goto outgoing Data pipeline
-      this->onOutgoingData(*csMatch, inFace);
-      return;
-    }
-  }
+  //     // goto outgoing Data pipeline
+  //     this->onOutgoingData(*csMatch, inFace);
+  //     return;
+  //   }
+  // }
 
   // insert InRecord
   pitEntry->insertOrUpdateInRecord(inFace.shared_from_this(), interest);
@@ -283,11 +284,11 @@ Forwarder::onIncomingData(Face& inFace, const Data& data)
     return;
   }
 
-  // CS insert
-  if (m_csFromNdnSim == nullptr)
-    m_cs.insert(data);
-  else
-    m_csFromNdnSim->Add(data.shared_from_this());
+  // CS insert  //change do not use CS
+  // if (m_csFromNdnSim == nullptr)
+  //   m_cs.insert(data);
+  // else
+  //   m_csFromNdnSim->Add(data.shared_from_this());
 
   std::set<shared_ptr<Face> > pendingDownstreams;
   // foreach PitEntry
