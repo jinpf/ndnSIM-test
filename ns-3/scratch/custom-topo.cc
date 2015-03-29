@@ -73,23 +73,27 @@ main(int argc, char* argv[])
   ndnGlobalRoutingHelper.InstallAll();
 
   // Getting containers for the consumer/producer
-  Ptr<Node> producer = Names::Find<Node>("Node8");
-  NodeContainer consumerNodes;
-  consumerNodes.Add(Names::Find<Node>("Node0"));
+  Ptr<Node> producer = Names::Find<Node>("D1");
+  NodeContainer consumerNodes[3];
+  consumerNodes[0].Add(Names::Find<Node>("C1"));
+  consumerNodes[1].Add(Names::Find<Node>("C2"));
+  consumerNodes[2].Add(Names::Find<Node>("C3"));
 
   // Install NDN applications
   std::string prefix = "/prefix";
 
-  ndn::AppHelper consumerHelper("ns3::ndn::ConsumerP");
+  ndn::AppHelper consumerHelper("ns3::ndn::ConsumerR");
   consumerHelper.SetPrefix(prefix);
-  consumerHelper.SetAttribute("Frequency", StringValue("100")); // 100 interests a second
+  // consumerHelper.SetAttribute("Frequency", StringValue("100")); // 100 interests a second
   // consumerHelper.SetAttribute("Randomize", StringValue("uniform"));
-  consumerHelper.Install(consumerNodes);
-
-  ndn::AppHelper producerHelper("ns3::ndn::ProducerP");
+  for (int i = 0; i != 3; ++i) {
+    consumerHelper.Install(consumerNodes[i]);
+  }
+  
+  ndn::AppHelper producerHelper("ns3::ndn::ProducerR");
   producerHelper.SetPrefix(prefix);
   producerHelper.SetAttribute("PayloadSize", StringValue("1024"));
-  producerHelper.SetAttribute("Frequency", StringValue("10"));
+  producerHelper.SetAttribute("Frequency", StringValue("0.8"));
   producerHelper.SetAttribute("Randomize", StringValue("exponential"));
   producerHelper.Install(producer);
 
