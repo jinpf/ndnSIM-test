@@ -294,8 +294,8 @@ Forwarder::onIncomingData(Face& inFace, const Data& data)
   for (const shared_ptr<pit::Entry>& pitEntry : pitMatches) {
     NFD_LOG_DEBUG("onIncomingData matching=" << pitEntry->getName());
 
-    // cancel unsatisfy & straggler timer
-    this->cancelUnsatisfyAndStragglerTimer(pitEntry);
+    // cancel unsatisfy & straggler timer //change
+    // this->cancelUnsatisfyAndStragglerTimer(pitEntry);
 
     // remember pending downstreams
     const pit::InRecordCollection& inRecords = pitEntry->getInRecords();
@@ -306,20 +306,20 @@ Forwarder::onIncomingData(Face& inFace, const Data& data)
       }
     }
 
-    // invoke PIT satisfy callback
-    beforeSatisfyInterest(*pitEntry, inFace, data);
-    this->dispatchToStrategy(pitEntry, bind(&Strategy::beforeSatisfyInterest, _1,
-                                            pitEntry, cref(inFace), cref(data)));
+    // invoke PIT satisfy callback  //change
+    // beforeSatisfyInterest(*pitEntry, inFace, data);
+    // this->dispatchToStrategy(pitEntry, bind(&Strategy::beforeSatisfyInterest, _1,
+    //                                         pitEntry, cref(inFace), cref(data)));
 
-    // Dead Nonce List insert if necessary (for OutRecord of inFace)
-    this->insertDeadNonceList(*pitEntry, true, data.getFreshnessPeriod(), &inFace);
+    // Dead Nonce List insert if necessary (for OutRecord of inFace)  //change
+    // this->insertDeadNonceList(*pitEntry, true, data.getFreshnessPeriod(), &inFace);
 
-    // mark PIT satisfied
-    pitEntry->deleteInRecords();
-    pitEntry->deleteOutRecord(inFace);
+    // mark PIT satisfied   //change
+    // pitEntry->deleteInRecords();
+    // pitEntry->deleteOutRecord(inFace);
 
     // set PIT straggler timer
-    this->setStragglerTimer(pitEntry, true, data.getFreshnessPeriod());
+    // this->setStragglerTimer(pitEntry, true, data.getFreshnessPeriod());
   }
 
   // foreach pending downstream

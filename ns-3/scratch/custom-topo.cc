@@ -82,18 +82,18 @@ main(int argc, char* argv[])
   // Install NDN applications
   std::string prefix = "/prefix";
 
-  ndn::AppHelper consumerHelper("ns3::ndn::ConsumerR");
+  ndn::AppHelper consumerHelper("ns3::ndn::ConsumerP");
   consumerHelper.SetPrefix(prefix);
-  // consumerHelper.SetAttribute("Frequency", StringValue("100")); // 100 interests a second
+  consumerHelper.SetAttribute("Frequency", StringValue("0.5")); // 100 interests a second
   // consumerHelper.SetAttribute("Randomize", StringValue("uniform"));
   for (int i = 0; i != 3; ++i) {
     consumerHelper.Install(consumerNodes[i]);
   }
   
-  ndn::AppHelper producerHelper("ns3::ndn::ProducerR");
+  ndn::AppHelper producerHelper("ns3::ndn::ProducerP");
   producerHelper.SetPrefix(prefix);
   producerHelper.SetAttribute("PayloadSize", StringValue("1024"));
-  producerHelper.SetAttribute("Frequency", StringValue("0.8"));
+  producerHelper.SetAttribute("Frequency", StringValue("10"));
   producerHelper.SetAttribute("Randomize", StringValue("exponential"));
   producerHelper.Install(producer);
 
