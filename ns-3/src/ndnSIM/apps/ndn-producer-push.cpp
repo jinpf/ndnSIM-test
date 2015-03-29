@@ -17,7 +17,7 @@
  * ndnSIM, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#include "ndn-producer-realtime.hpp"
+#include "ndn-producer-push.hpp"
 #include "ns3/log.h"
 #include "ns3/string.h"
 #include "ns3/uinteger.h"
@@ -34,49 +34,49 @@
 
 #include <memory>
 
-NS_LOG_COMPONENT_DEFINE("ndn.ProducerR");
+NS_LOG_COMPONENT_DEFINE("ndn.ProducerP");
 
 namespace ns3 {
 namespace ndn {
 
-NS_OBJECT_ENSURE_REGISTERED(ProducerR);
+NS_OBJECT_ENSURE_REGISTERED(ProducerP);
 
 TypeId
-ProducerR::GetTypeId(void)
+ProducerP::GetTypeId(void)
 {
   static TypeId tid =
-    TypeId("ns3::ndn::ProducerR")
+    TypeId("ns3::ndn::ProducerP")
       .SetGroupName("Ndn")
       .SetParent<App>()
-      .AddConstructor<ProducerR>()
+      .AddConstructor<ProducerP>()
       .AddAttribute("Prefix", "Prefix, for which producer has the data", StringValue("/"),
-                    MakeNameAccessor(&ProducerR::m_prefix), MakeNameChecker())
+                    MakeNameAccessor(&ProducerP::m_prefix), MakeNameChecker())
       .AddAttribute(
          "Postfix",
          "Postfix that is added to the output data (e.g., for adding producer-uniqueness)",
-         StringValue("/"), MakeNameAccessor(&ProducerR::m_postfix), MakeNameChecker())
+         StringValue("/"), MakeNameAccessor(&ProducerP::m_postfix), MakeNameChecker())
       .AddAttribute("PayloadSize", "Virtual payload size for Content packets", UintegerValue(1024),
-                    MakeUintegerAccessor(&ProducerR::m_virtualPayloadSize),
+                    MakeUintegerAccessor(&ProducerP::m_virtualPayloadSize),
                     MakeUintegerChecker<uint32_t>())
       .AddAttribute("Freshness", "Freshness of data packets, if 0, then unlimited freshness",
-                    TimeValue(Seconds(0)), MakeTimeAccessor(&ProducerR::m_freshness),
+                    TimeValue(Seconds(0)), MakeTimeAccessor(&ProducerP::m_freshness),
                     MakeTimeChecker())
       .AddAttribute(
          "Signature",
          "Fake signature, 0 valid signature (default), other values application-specific",
-         UintegerValue(0), MakeUintegerAccessor(&ProducerR::m_signature),
+         UintegerValue(0), MakeUintegerAccessor(&ProducerP::m_signature),
          MakeUintegerChecker<uint32_t>())
       .AddAttribute("KeyLocator",
                     "Name to be used for key locator.  If root, then key locator is not used",
-                    NameValue(), MakeNameAccessor(&ProducerR::m_keyLocator), MakeNameChecker())
+                    NameValue(), MakeNameAccessor(&ProducerP::m_keyLocator), MakeNameChecker())
 
       .AddAttribute("Frequency", "Frequency of data packet generate", StringValue("1.0"),
-                    MakeDoubleAccessor(&ProducerR::m_frequency), MakeDoubleChecker<double>())
+                    MakeDoubleAccessor(&ProducerP::m_frequency), MakeDoubleChecker<double>())
 
       .AddAttribute("Randomize",
                     "Type of send time randomization: none (default), uniform, exponential",
                     StringValue("none"),
-                    MakeStringAccessor(&ProducerR::SetRandomize, &ProducerR::GetRandomize),
+                    MakeStringAccessor(&ProducerP::SetRandomize, &ProducerP::GetRandomize),
                     MakeStringChecker());
 
       // above code comes from ndn-producer and ndn-consumer-cbr
@@ -84,15 +84,16 @@ ProducerR::GetTypeId(void)
   return tid;
 }
 
-ProducerR::ProducerR()
+ProducerP::ProducerP()
   : m_seq(0)
   , m_frequency(1.0)
   , m_random(0)
+  , m_subscribe(false)
 {
   NS_LOG_FUNCTION_NOARGS();
 }
 
-ProducerR::~ProducerR()
+ProducerP::~ProducerP()
 {
   if (m_random)
     delete m_random;
@@ -100,7 +101,7 @@ ProducerR::~ProducerR()
 
 // inherited from Application base class.
 void
-ProducerR::StartApplication()
+ProducerP::StartApplication()
 {
   NS_LOG_FUNCTION_NOARGS();
   App::StartApplication();
@@ -111,7 +112,7 @@ ProducerR::StartApplication()
 }
 
 void
-ProducerR::StopApplication()
+ProducerP::StopApplication()
 {
   NS_LOG_FUNCTION_NOARGS();
 
@@ -119,7 +120,7 @@ ProducerR::StopApplication()
 }
 
 void
-ProducerR::SendData(const Name &dataName)
+ProducerP::SendData(const Name &dataName)
 {
   auto data = make_shared<Data>();
   data->setName(dataName);
@@ -148,14 +149,14 @@ ProducerR::SendData(const Name &dataName)
   m_face->onReceiveData(*data);
 
   // cout name in string
-  std::cout << dataName.toUri() << std::endl;
-  std::cout << dataName.at(-2).toUri() << std::endl;
+  // std::cout << dataName.toUri() << std::endl;
+  // std::cout << dataName.at(-2).toUri() << std::endl;
   // cout sequecenumber in int
   std::cout << " send data:" << dataName.at(-1).toSequenceNumber() << std::endl;
 }
 
 void
-ProducerR::OnInterest(shared_ptr<const Interest> interest)
+ProducerP::OnInterest(shared_ptr<const Interest> interest)
 {
   App::OnInterest(interest); // tracing inside
 
@@ -164,38 +165,34 @@ ProducerR::OnInterest(shared_ptr<const Interest> interest)
   if (!m_active)
     return;
 
+  
   Name dataName(interest->getName());
   // dataName.append(m_postfix);
   // dataName.appendVersion();
-  
-  auto seq = dataName.at(-1).toSequenceNumber();
 
-  std::cout << "[producer]receive comsumer request: " << seq ;
-  // if requested seq > producer has produced, stop
-  if ( seq > m_seq ) {
-    std::cout << "  but i don`t have..." << std::endl;
-    return;
+  if (m_prefix.isPrefixOf(dataName)) {
+    m_subscribe = true;
+    std::cout << "[producer]receive comsumer subscribe: " << std::endl ;
   }
-
-  SendData(dataName);
+ 
 }
 
 void
-ProducerR::ScheduleNextData()
+ProducerP::ScheduleNextData()
 {
   if ( !m_seq) {
-    m_generateEvent = Simulator :: Schedule(Seconds(0.0), &ProducerR::GenerateData, this);
+    m_generateEvent = Simulator :: Schedule(Seconds(0.0), &ProducerP::GenerateData, this);
   }
   else if ( !m_generateEvent.IsRunning()) {
     m_generateEvent = Simulator :: Schedule((m_random == 0) ? Seconds(1.0 / m_frequency)
                                                                                                        : Seconds(m_random->GetValue()),
-                                                                          &ProducerR::GenerateData, this);
+                                                                          &ProducerP::GenerateData, this);
   }
 }
 
 // Attention! not really generate data, just add seq number pretend to generate data 
 void
-ProducerR::GenerateData()
+ProducerP::GenerateData()
 {
   if (m_seq != std::numeric_limits<uint32_t>::max()) {
     // generate data and plus seq number
@@ -203,12 +200,20 @@ ProducerR::GenerateData()
 
     std::cout << "[producer]generate data:" << m_seq << std::endl;
     // schedule to generate next data
+
+    //if some one subscribe, then push data
+    if (m_subscribe) {
+      Name nameWithSequence(m_prefix);
+      nameWithSequence.appendSequenceNumber(m_seq);
+      SendData(nameWithSequence);
+    }
+    
     ScheduleNextData();
   }
 }
 
 void
-ProducerR::SetRandomize(const std::string &value)
+ProducerP::SetRandomize(const std::string &value)
 {
   if (m_random)
     delete m_random;
@@ -225,7 +230,7 @@ ProducerR::SetRandomize(const std::string &value)
 }
 
 std::string
-ProducerR::GetRandomize() const
+ProducerP::GetRandomize() const
 {
   return m_randomType;
 }

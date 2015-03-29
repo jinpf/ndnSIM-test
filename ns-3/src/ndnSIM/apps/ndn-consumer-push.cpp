@@ -17,7 +17,7 @@
  * ndnSIM, e.g., in COPYING.md file.  If not, see <http://www.gnu.org/licenses/>.
  **/
 
-#include "ndn-consumer-realtime.hpp"
+#include "ndn-consumer-push.hpp"
 #include "ns3/ptr.h"
 #include "ns3/log.h"
 #include "ns3/simulator.h"
@@ -36,41 +36,46 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/ref.hpp>
 
-NS_LOG_COMPONENT_DEFINE("ndn.ConsumerR");
+NS_LOG_COMPONENT_DEFINE("ndn.ConsumerP");
 
 namespace ns3 {
 namespace ndn {
 
-NS_OBJECT_ENSURE_REGISTERED(ConsumerR);
+NS_OBJECT_ENSURE_REGISTERED(ConsumerP);
 
 TypeId
-ConsumerR::GetTypeId(void)
+ConsumerP::GetTypeId(void)
 {
   static TypeId tid =
-    TypeId("ns3::ndn::ConsumerR")
+    TypeId("ns3::ndn::ConsumerP")
       .SetGroupName("Ndn")
       .SetParent<App>()
-      .AddConstructor<ConsumerR>()
+      .AddConstructor<ConsumerP>()
 
       .AddAttribute("StartSeq", "Initial sequence number", IntegerValue(0),
-                    MakeIntegerAccessor(&ConsumerR::m_seq), MakeIntegerChecker<int32_t>())
+                    MakeIntegerAccessor(&ConsumerP::m_seq), MakeIntegerChecker<int32_t>())
 
       .AddAttribute("Prefix", "Name of the Interest", StringValue("/"),
-                    MakeNameAccessor(&ConsumerR::m_interestName), MakeNameChecker())
+                    MakeNameAccessor(&ConsumerP::m_interestName), MakeNameChecker())
+
+      .AddAttribute("Frequency", "Frequency of interest packets", StringValue("1.0"),
+                    MakeDoubleAccessor(&ConsumerP::m_frequency), MakeDoubleChecker<double>())
+
       .AddAttribute("LifeTime", "LifeTime for interest packet", StringValue("2s"),
-                    MakeTimeAccessor(&ConsumerR::m_interestLifeTime), MakeTimeChecker())
+                    MakeTimeAccessor(&ConsumerP::m_interestLifeTime), MakeTimeChecker())
 
       .AddAttribute("RetxTimer",
                     "Timeout defining how frequent retransmission timeouts should be checked",
-                    StringValue("50ms"),MakeTimeAccessor(&ConsumerR::m_retxTimer),
+                    StringValue("50ms"),MakeTimeAccessor(&ConsumerP::m_retxTimer),
                     MakeTimeChecker());
 
   return tid;
 }
 
-ConsumerR::ConsumerR()
+ConsumerP::ConsumerP()
   : m_rand(0, std::numeric_limits<uint32_t>::max())
-  , m_seq(0)
+  , m_frequency(1.0)
+  , m_firstTime(true)
 {
   NS_LOG_FUNCTION_NOARGS();
 
@@ -79,18 +84,18 @@ ConsumerR::ConsumerR()
 
 // Application Methods
 void
-ConsumerR::StartApplication() // Called at time specified by Start
+ConsumerP::StartApplication() // Called at time specified by Start
 {
   NS_LOG_FUNCTION_NOARGS();
 
   // do base stuff
   App::StartApplication();
 
-  SendPacket(m_seq);
+  ScheduleNextPacket();
 }
 
 void
-ConsumerR::StopApplication() // Called at time specified by Stop
+ConsumerP::StopApplication() // Called at time specified by Stop
 {
   NS_LOG_FUNCTION_NOARGS();
 
@@ -102,7 +107,7 @@ ConsumerR::StopApplication() // Called at time specified by Stop
 }
 
 void
-ConsumerR::SendPacket(uint32_t sequenceNumber)
+ConsumerP::SendPacket()
 {
   if (!m_active)
     return;
@@ -110,32 +115,42 @@ ConsumerR::SendPacket(uint32_t sequenceNumber)
   NS_LOG_FUNCTION_NOARGS();
 
   //
-  shared_ptr<Name> nameWithSequence = make_shared<Name>(m_interestName);
-  nameWithSequence->append("pull");
-  nameWithSequence->appendSequenceNumber(sequenceNumber);
-  //
+  shared_ptr<Name> name = make_shared<Name>(m_interestName);
+  // nameWithSequence->append("pull");
 
-  // shared_ptr<Interest> interest = make_shared<Interest> ();
   shared_ptr<Interest> interest = make_shared<Interest>();
   interest->setNonce(m_rand.GetValue());
-  interest->setName(*nameWithSequence);
+  interest->setName(*name);
   time::milliseconds interestLifeTime(m_interestLifeTime.GetMilliSeconds());
   interest->setInterestLifetime(interestLifeTime);
 
   // NS_LOG_INFO ("Requesting Interest: \n" << *interest);
-  NS_LOG_INFO("> Interest for " << sequenceNumber);
+  NS_LOG_INFO("> Interest for " << std::endl );
 
   m_transmittedInterests(interest, this, m_face);
   m_face->onReceiveInterest(*interest);
   
-  r_seq = sequenceNumber;
-  m_retxEvent = Simulator::Schedule(m_retxTimer, &ConsumerR::RetxPacket, this);
+  // r_seq = sequenceNumber;
+  m_retxEvent = Simulator::Schedule(m_retxTimer, &ConsumerP::RetxPacket, this);
+
+  ScheduleNextPacket();
 }
 
 void
-ConsumerR::RetxPacket()
+ConsumerP::RetxPacket()
 {
-  SendPacket(r_seq);
+  SendPacket();
+}
+
+void
+ConsumerP::ScheduleNextPacket()
+{
+  if (m_firstTime) {
+    m_sendEvent = Simulator::Schedule(Seconds(0.0), &ConsumerP::SendPacket, this);
+    m_firstTime = false;
+  }
+  else if (!m_sendEvent.IsRunning())
+    m_sendEvent = Simulator::Schedule(Seconds(1.0 / m_frequency), &ConsumerP::SendPacket, this);
 }
 
 ///////////////////////////////////////////////////
@@ -143,7 +158,7 @@ ConsumerR::RetxPacket()
 ///////////////////////////////////////////////////
 
 void
-ConsumerR::OnData(shared_ptr<const Data> data)
+ConsumerP::OnData(shared_ptr<const Data> data)
 {
   if (!m_active)
     return;
@@ -173,10 +188,10 @@ ConsumerR::OnData(shared_ptr<const Data> data)
     }
   }
 
+  std::cout << "[consumer]receive data:" << seq  << " Hop count:" << hopCount << std::endl;
+
   m_rtt->AckSeq(SequenceNumber32(seq));
 
-  m_seq++;
-  SendPacket(m_seq);
 }
 
 } // namespace ndn
