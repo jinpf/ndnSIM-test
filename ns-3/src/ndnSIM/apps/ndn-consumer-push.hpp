@@ -90,6 +90,10 @@ protected:
   Name m_interestName;     ///< \brief NDN Name of the Interest (use Name)
   Time m_interestLifeTime; ///< \brief LifeTime for interest packet
 
+  // added to record information by using tracers
+  TracedCallback<Ptr<App> , std::string , std::string , int32_t, int32_t >
+    m_PacketRecord;
+
 };
 } // namespace ndn
 } // namespace ns3

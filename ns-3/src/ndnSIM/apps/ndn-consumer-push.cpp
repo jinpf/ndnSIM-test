@@ -67,7 +67,11 @@ ConsumerP::GetTypeId(void)
       .AddAttribute("RetxTimer",
                     "Timeout defining how frequent retransmission timeouts should be checked",
                     StringValue("50ms"),MakeTimeAccessor(&ConsumerP::m_retxTimer),
-                    MakeTimeChecker());
+                    MakeTimeChecker())
+
+      .AddTraceSource("PacketRecord",
+                      "Record data send and receive in file",
+                      MakeTraceSourceAccessor(&ConsumerP::m_PacketRecord));
 
   return tid;
 }
@@ -129,8 +133,10 @@ ConsumerP::SendPacket()
 
   m_transmittedInterests(interest, this, m_face);
   m_face->onReceiveInterest(*interest);
+
+  // for using tracers, log in file
+  m_PacketRecord(this, "C_Interest", name->toUri(), -1, 0);
   
-  // r_seq = sequenceNumber;
   m_retxEvent = Simulator::Schedule(m_retxTimer, &ConsumerP::RetxPacket, this);
 
   ScheduleNextPacket();
@@ -188,10 +194,14 @@ ConsumerP::OnData(shared_ptr<const Data> data)
     }
   }
 
+  // use tracers, log in file
+  m_PacketRecord(this, "C_Data", data->getName().toUri(), seq, hopCount);
+
   std::cout << "[consumer]receive data:" << seq  << " Hop count:" << hopCount << std::endl;
 
   m_rtt->AckSeq(SequenceNumber32(seq));
 
+  
 }
 
 } // namespace ndn

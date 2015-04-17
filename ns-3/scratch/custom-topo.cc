@@ -23,6 +23,8 @@
 #include "ns3/network-module.h"
 #include "ns3/ndnSIM-module.h"
 
+#include "ns3/ndnSIM/utils/tracers/ndn-app-delay-tracer-s.hpp"
+
 namespace ns3 {
 
 /**
@@ -110,7 +112,7 @@ main(int argc, char* argv[])
 
   L2RateTracer::InstallAll("../graphs/drop-trace.txt", Seconds(0.5));
 
-  ndn::AppDelayTracer::InstallAll("../graphs/app-delays-trace.txt");
+  ndn::AppDelayTracerS::InstallAll("../graphs/app-delays-trace.txt");
 
   Simulator::Run();
   Simulator::Destroy();

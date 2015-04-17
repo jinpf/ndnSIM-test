@@ -93,6 +93,10 @@ protected:
   std::string
   GetRandomize() const;
 
+  // added to record information by using tracers
+  TracedCallback<Ptr<App> , std::string , std::string , int32_t, int32_t >
+    m_PacketRecord;
+
 private:
   Name m_prefix;
   Name m_postfix;
