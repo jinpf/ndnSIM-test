@@ -12,5 +12,7 @@ The file tree is organized as follows:
 		* `ndnSIM/` ndnSIM related code
 			* `apps/` Consumer Producer application
 			* `NFD/`  NDN Forwarding Daemon src code
+			* `utils/` NDN tools
+				* `tracers/` for logging information in running experiment
 
 
