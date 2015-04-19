@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+#-*- coding: utf-8 -*-
+
 ## this script handle ndn app log, and calculate the
 #  delay between producer generate data and consumer 
 #  received the generated data, and record the delay
