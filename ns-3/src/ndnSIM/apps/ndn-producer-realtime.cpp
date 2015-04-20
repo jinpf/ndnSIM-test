@@ -77,7 +77,11 @@ ProducerR::GetTypeId(void)
                     "Type of send time randomization: none (default), uniform, exponential",
                     StringValue("none"),
                     MakeStringAccessor(&ProducerR::SetRandomize, &ProducerR::GetRandomize),
-                    MakeStringChecker());
+                    MakeStringChecker())
+
+      .AddTraceSource("PacketRecord",
+                      "Record data send and receive in file",
+                      MakeTraceSourceAccessor(&ProducerR::m_PacketRecord));
 
       // above code comes from ndn-producer and ndn-consumer-cbr
 
@@ -147,9 +151,11 @@ ProducerR::SendData(const Name &dataName)
   m_transmittedDatas(data, this, m_face);
   m_face->onReceiveData(*data);
 
+  // record log in file
+  m_PacketRecord(this, "P_Data", dataName.toUri(), dataName.at(-1).toSequenceNumber(), 0);
   // cout name in string
   std::cout << dataName.toUri() << std::endl;
-  std::cout << dataName.at(-2).toUri() << std::endl;
+  // std::cout << dataName.at(-2).toUri() << std::endl;
   // cout sequecenumber in int
   std::cout << " send data:" << dataName.at(-1).toSequenceNumber() << std::endl;
 }
@@ -170,6 +176,8 @@ ProducerR::OnInterest(shared_ptr<const Interest> interest)
   
   auto seq = dataName.at(-1).toSequenceNumber();
 
+  // log record in file
+  m_PacketRecord(this, "P_Interest", dataName.toUri(), seq, -1);
   std::cout << "[producer]receive comsumer request: " << seq ;
   // if requested seq > producer has produced, stop
   if ( seq > m_seq ) {
@@ -200,7 +208,8 @@ ProducerR::GenerateData()
   if (m_seq != std::numeric_limits<uint32_t>::max()) {
     // generate data and plus seq number
     m_seq++;
-
+    // log record in file
+    m_PacketRecord(this, "P_GData", m_prefix.toUri(), m_seq, 0);
     std::cout << "[producer]generate data:" << m_seq << std::endl;
     // schedule to generate next data
     ScheduleNextData();

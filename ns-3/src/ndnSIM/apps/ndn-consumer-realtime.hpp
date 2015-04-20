@@ -71,6 +71,10 @@ protected:
   virtual void
   StopApplication();
 
+  // added to record information by using tracers
+  TracedCallback<Ptr<App> , std::string , std::string , int32_t, int32_t >
+    m_PacketRecord;
+
 protected:
   UniformVariable m_rand; ///< @brief nonce generator
 

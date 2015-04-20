@@ -52,7 +52,7 @@ ConsumerR::GetTypeId(void)
       .SetParent<App>()
       .AddConstructor<ConsumerR>()
 
-      .AddAttribute("StartSeq", "Initial sequence number", IntegerValue(0),
+      .AddAttribute("StartSeq", "Initial sequence number", IntegerValue(1),
                     MakeIntegerAccessor(&ConsumerR::m_seq), MakeIntegerChecker<int32_t>())
 
       .AddAttribute("Prefix", "Name of the Interest", StringValue("/"),
@@ -63,14 +63,18 @@ ConsumerR::GetTypeId(void)
       .AddAttribute("RetxTimer",
                     "Timeout defining how frequent retransmission timeouts should be checked",
                     StringValue("50ms"),MakeTimeAccessor(&ConsumerR::m_retxTimer),
-                    MakeTimeChecker());
+                    MakeTimeChecker())
+
+      .AddTraceSource("PacketRecord",
+                      "Record data send and receive in file",
+                      MakeTraceSourceAccessor(&ConsumerR::m_PacketRecord));
 
   return tid;
 }
 
 ConsumerR::ConsumerR()
   : m_rand(0, std::numeric_limits<uint32_t>::max())
-  , m_seq(0)
+  , m_seq(1)
 {
   NS_LOG_FUNCTION_NOARGS();
 
@@ -111,7 +115,7 @@ ConsumerR::SendPacket(uint32_t sequenceNumber)
 
   //
   shared_ptr<Name> nameWithSequence = make_shared<Name>(m_interestName);
-  nameWithSequence->append("pull");
+  // nameWithSequence->append("pull");
   nameWithSequence->appendSequenceNumber(sequenceNumber);
   //
 
@@ -127,6 +131,9 @@ ConsumerR::SendPacket(uint32_t sequenceNumber)
 
   m_transmittedInterests(interest, this, m_face);
   m_face->onReceiveInterest(*interest);
+
+  // log record in file
+  m_PacketRecord(this, "C_Interest", nameWithSequence->toUri(), sequenceNumber, 0);
   
   r_seq = sequenceNumber;
   m_retxEvent = Simulator::Schedule(m_retxTimer, &ConsumerR::RetxPacket, this);
@@ -174,6 +181,8 @@ ConsumerR::OnData(shared_ptr<const Data> data)
   }
 
   m_rtt->AckSeq(SequenceNumber32(seq));
+  // log record in file
+  m_PacketRecord(this, "C_Data", data->getName().toUri(), seq, hopCount);
 
   m_seq++;
   SendPacket(m_seq);

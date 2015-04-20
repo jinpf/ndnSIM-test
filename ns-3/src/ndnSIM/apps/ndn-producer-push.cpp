@@ -80,7 +80,7 @@ ProducerP::GetTypeId(void)
                     MakeStringChecker())
       .AddTraceSource("PacketRecord",
                       "Record data send and receive in file",
-                      MakeTraceSourceAccessor(&ProducerP::m_PacketRecord));;
+                      MakeTraceSourceAccessor(&ProducerP::m_PacketRecord));
 
       // above code comes from ndn-producer and ndn-consumer-cbr
 
