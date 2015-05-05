@@ -65,6 +65,7 @@ public:
 protected:
 
   uint32_t m_seq;  // current produced sequence number
+  uint32_t m_seqmax = 1000; //std::numeric_limits<uint32_t>::max(); //max seq
   double m_frequency;  // frequency of data packet gererating in 1 second
   RandomVariable *m_random;  // random
   std::string m_randomType; //  random type: uniform or exponential
