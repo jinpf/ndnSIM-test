@@ -86,7 +86,7 @@ main(int argc, char* argv[])
   consumerHelper.SetPrefix(prefix);
   // consumerHelper.SetAttribute("Frequency", StringValue("0.5")); // 100 interests a second
   consumerHelper.SetAttribute("LifeTime", StringValue("1s"));
-  consumerHelper.SetAttribute("RetxTimer", StringValue("200ms"));
+  consumerHelper.SetAttribute("RetxTimer", StringValue("300ms"));
   // consumerHelper.SetAttribute("Randomize", StringValue("uniform"));
 
   consumerHelper.Install(consumerNodes);

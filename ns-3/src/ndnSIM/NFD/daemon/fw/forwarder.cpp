@@ -91,36 +91,35 @@ Forwarder::onIncomingInterest(Face& inFace, const Interest& interest)
   // cancel unsatisfy & straggler timer
   this->cancelUnsatisfyAndStragglerTimer(pitEntry);
 
-  // change code : no use CS , if ispending, forward anyway
-  // // is pending?
-  // const pit::InRecordCollection& inRecords = pitEntry->getInRecords();
-  // bool isPending = inRecords.begin() != inRecords.end();
-  // if (!isPending) {
-  //   // CS lookup    //change :no use CS
-  //   const Data* csMatch;
-  //   shared_ptr<Data> match;
-  //   if (m_csFromNdnSim == nullptr)
-  //     csMatch = m_cs.find(interest);
-  //   else {
-  //     match = m_csFromNdnSim->Lookup(interest.shared_from_this());
-  //     csMatch = match.get();
-  //   }
-  //   if (csMatch != 0) {
-  //     const_cast<Data*>(csMatch)->setIncomingFaceId(FACEID_CONTENT_STORE);
-  //     // XXX should we lookup PIT for other Interests that also match csMatch?
+  // is pending?
+  const pit::InRecordCollection& inRecords = pitEntry->getInRecords();
+  bool isPending = inRecords.begin() != inRecords.end();
+  if (!isPending) {
+    // CS lookup
+    const Data* csMatch;
+    shared_ptr<Data> match;
+    if (m_csFromNdnSim == nullptr)
+      csMatch = m_cs.find(interest);
+    else {
+      match = m_csFromNdnSim->Lookup(interest.shared_from_this());
+      csMatch = match.get();
+    }
+    if (csMatch != 0) {
+      const_cast<Data*>(csMatch)->setIncomingFaceId(FACEID_CONTENT_STORE);
+      // XXX should we lookup PIT for other Interests that also match csMatch?
 
-  //     // invoke PIT satisfy callback
-  //     beforeSatisfyInterest(*pitEntry, *m_csFace, *csMatch);
-  //     this->dispatchToStrategy(pitEntry, bind(&Strategy::beforeSatisfyInterest, _1,
-  //                                             pitEntry, cref(*m_csFace), cref(*csMatch)));
-  //     // set PIT straggler timer
-  //     this->setStragglerTimer(pitEntry, true, csMatch->getFreshnessPeriod());
+      // invoke PIT satisfy callback
+      beforeSatisfyInterest(*pitEntry, *m_csFace, *csMatch);
+      this->dispatchToStrategy(pitEntry, bind(&Strategy::beforeSatisfyInterest, _1,
+                                              pitEntry, cref(*m_csFace), cref(*csMatch)));
+      // set PIT straggler timer
+      this->setStragglerTimer(pitEntry, true, csMatch->getFreshnessPeriod());
 
-  //     // goto outgoing Data pipeline
-  //     this->onOutgoingData(*csMatch, inFace);
-  //     return;
-  //   }
-  // }
+      // goto outgoing Data pipeline
+      this->onOutgoingData(*csMatch, inFace);
+      return;
+    }
+  }
 
   // insert InRecord
   pitEntry->insertOrUpdateInRecord(inFace.shared_from_this(), interest);
@@ -284,19 +283,19 @@ Forwarder::onIncomingData(Face& inFace, const Data& data)
     return;
   }
 
-  // CS insert  //change do not use CS
-  // if (m_csFromNdnSim == nullptr)
-  //   m_cs.insert(data);
-  // else
-  //   m_csFromNdnSim->Add(data.shared_from_this());
+  // CS insert
+  if (m_csFromNdnSim == nullptr)
+    m_cs.insert(data);
+  else
+    m_csFromNdnSim->Add(data.shared_from_this());
 
   std::set<shared_ptr<Face> > pendingDownstreams;
   // foreach PitEntry
   for (const shared_ptr<pit::Entry>& pitEntry : pitMatches) {
     NFD_LOG_DEBUG("onIncomingData matching=" << pitEntry->getName());
 
-    // cancel unsatisfy & straggler timer //change
-    // this->cancelUnsatisfyAndStragglerTimer(pitEntry);
+    // cancel unsatisfy & straggler timer
+    this->cancelUnsatisfyAndStragglerTimer(pitEntry);
 
     // remember pending downstreams
     const pit::InRecordCollection& inRecords = pitEntry->getInRecords();
@@ -307,20 +306,20 @@ Forwarder::onIncomingData(Face& inFace, const Data& data)
       }
     }
 
-    // invoke PIT satisfy callback  //change
-    // beforeSatisfyInterest(*pitEntry, inFace, data);
-    // this->dispatchToStrategy(pitEntry, bind(&Strategy::beforeSatisfyInterest, _1,
-    //                                         pitEntry, cref(inFace), cref(data)));
+    // invoke PIT satisfy callback
+    beforeSatisfyInterest(*pitEntry, inFace, data);
+    this->dispatchToStrategy(pitEntry, bind(&Strategy::beforeSatisfyInterest, _1,
+                                            pitEntry, cref(inFace), cref(data)));
 
-    // Dead Nonce List insert if necessary (for OutRecord of inFace)  //change
-    // this->insertDeadNonceList(*pitEntry, true, data.getFreshnessPeriod(), &inFace);
+    // Dead Nonce List insert if necessary (for OutRecord of inFace)
+    this->insertDeadNonceList(*pitEntry, true, data.getFreshnessPeriod(), &inFace);
 
-    // mark PIT satisfied   //change
-    // pitEntry->deleteInRecords();
-    // pitEntry->deleteOutRecord(inFace);
+    // mark PIT satisfied
+    pitEntry->deleteInRecords();
+    pitEntry->deleteOutRecord(inFace);
 
     // set PIT straggler timer
-    // this->setStragglerTimer(pitEntry, true, data.getFreshnessPeriod());
+    this->setStragglerTimer(pitEntry, true, data.getFreshnessPeriod());
   }
 
   // foreach pending downstream
