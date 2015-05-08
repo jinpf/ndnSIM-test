@@ -137,9 +137,9 @@ ConsumerP::SendPacket()
   // for using tracers, log in file
   m_PacketRecord(this, "C_Interest", name->toUri(), -1, 0);
   
-  m_retxEvent = Simulator::Schedule(m_retxTimer, &ConsumerP::RetxPacket, this);
+  // m_retxEvent = Simulator::Schedule(m_retxTimer, &ConsumerP::RetxPacket, this);
 
-  ScheduleNextPacket();
+  // ScheduleNextPacket();
 }
 
 void

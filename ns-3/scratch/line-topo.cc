@@ -85,7 +85,7 @@ main(int argc, char* argv[])
   ndn::AppHelper consumerHelper("ns3::ndn::ConsumerP");
   consumerHelper.SetPrefix(prefix);
   consumerHelper.SetAttribute("Frequency", StringValue("1")); // 100 interests a second
-  consumerHelper.SetAttribute("LifeTime", StringValue("1.5s"));
+  consumerHelper.SetAttribute("LifeTime", StringValue("1500s"));
   consumerHelper.SetAttribute("RetxTimer", StringValue("1000ms"));
   // consumerHelper.SetAttribute("Randomize", StringValue("uniform"));
 
