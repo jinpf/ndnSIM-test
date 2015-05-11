@@ -24,7 +24,7 @@ link
 # metric: routing metric
 # delay:  link delay
 # queue:  MaxPackets for transmission queue on the link (both directions)
-C       R1       10Mbps       1       50ms    20
-R1       R2       10Mbps       1       50ms    20
-R2       P       10Mbps       1       50ms    20
+C       R1       10Mbps       1       50ms    20	ns3::RateErrorModel,ErrorUnit=ERROR_UNIT_PACKET,ErrorRate=0.05
+R1       R2       10Mbps       1       50ms    20	ns3::RateErrorModel,ErrorUnit=ERROR_UNIT_PACKET,ErrorRate=0.05
+R2       P       10Mbps       1       50ms    20	ns3::RateErrorModel,ErrorUnit=ERROR_UNIT_PACKET,ErrorRate=0.05
 
