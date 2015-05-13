@@ -6,6 +6,7 @@ def print_average(fname):
         print sum(delay)/len(delay)
 
 if __name__ == '__main__':
+    print_average('app-data-delay-pull.txt')
     print_average('app-data-delay-pull-lost-5.txt')
     print_average('app-data-delay-pull-lost-10.txt')
     print_average('app-data-delay-pull-lost-15.txt')
