@@ -200,7 +200,7 @@ ProducerP::ScheduleNextData()
 void
 ProducerP::GenerateData()
 {
-  if (m_seq != std::numeric_limits<uint32_t>::max()) {
+  if (m_seq != m_seqmax) {
     // generate data and plus seq number
     m_seq++;
     // record and log in file
