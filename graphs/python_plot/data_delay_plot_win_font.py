@@ -3,14 +3,18 @@
 # @Author: jinpf
 # @Date:   2015-05-05 16:24:40
 # @Last Modified by:   jinpf
-# @Last Modified time: 2015-05-11 16:41:30
+# @Last Modified time: 2015-05-15 20:01:33
 
 # this script shall be used in windows! or modify the font!
 
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 
+import calculate_push_delay 
+
 def get_data_from_file(filename):
+	if 'push-lost' in filename:
+		lost_delay = calculate_push_delay.push_lost_delay_calculate(15)
 	with open(filename,'r') as f:
 		seq = []
 		delay = []
@@ -20,9 +24,11 @@ def get_data_from_file(filename):
 			data = line.strip('\n').split('\t')
 			seq.append(int(data[0]))
 			if data[1] == 'not receive':
-				delay.append(0.152)
+				# delay.append(0.15)
+				delay.append(lost_delay[int(data[0])])
 			else:
 				delay.append(float(data[1]))
+	print filename + ' average_delay:' , sum(delay)/len(delay)
 	return (seq, delay)
 
 def plot_data(pull_data, push_data):
@@ -67,14 +73,18 @@ def plot_delay_distribute(pull_delay, push_delay):
 	plt.title(u'不同时延所占比例', fontproperties=font)
 	plt.show()
 
-if __name__ == '__main__':
-	datapull = get_data_from_file('app-data-delay-pull.txt')
-	datapush = get_data_from_file('app-data-delay-push.txt')
-	print max(datapull[1])
+def plot_all_delay_data(fname1,fname2):
+	datapull = get_data_from_file('app-data-delay-' + fname1 + '.txt')
+	datapush = get_data_from_file('app-data-delay-' + fname2 + '.txt')
+	print 'pull_max_delay:', max(datapull[1]), 'push_max_delay', max(datapush[1])
 	plot_data(datapull, datapush)
 	pull_delay = delay_distribute(datapull[1],1)
-	push_delay = delay_distribute(datapush[1],3)
-	print pull_delay[0],pull_delay[1]
-	print push_delay[0],push_delay[1]
+	push_delay = delay_distribute(datapush[1],1)
+	plot_delay_distribute(pull_delay, push_delay)
+	# print pull_delay[0],pull_delay[1]
+	# print push_delay[0],push_delay[1]
 	# plot_each_delay(pull_delay)
-	plot_delay_distribute(pull_delay, ([0.15],[1000]))
+	# plot_delay_distribute(pull_delay, ([0.15],[1000]))
+
+if __name__ == '__main__':
+	plot_all_delay_data('pull-lost-15','push-lost-15')

@@ -3,10 +3,12 @@
 # @Author: jinpf
 # @Date:   2015-05-06 10:05:27
 # @Last Modified by:   jinpf
-# @Last Modified time: 2015-05-12 13:09:07
+# @Last Modified time: 2015-05-15 17:32:34
 
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
+
+import calculate_push_delay 
 
 def read_and_count(filename,interval=1):
 	with open(filename,'r') as f:
@@ -33,17 +35,31 @@ def re_load(data):
 	return (t,c)
 
 def plot_time_count(pull_data,push_data):
+	font = FontProperties(fname=r"c:\windows\fonts\simsun.ttc", size=17) 
 	line1, = plt.plot(pull_data[0],pull_data[1],'r.',label=u'pull',linewidth=1)
 	line2, = plt.plot(push_data[0],push_data[1],'b+',label=u'push',linewidth=1)
-	# plt.legend(handles=[line1,line2])
-	plt.ylabel(u'链路包个数')
-	plt.xlabel(u'时间(每3秒)')
-	plt.title(u'链路包个数')
+	plt.legend(handles=[line1,line2])
+	plt.ylabel(u'链路包个数', fontproperties=font)
+	plt.xlabel(u'时间(每3秒)', fontproperties=font)
+	plt.title(u'链路包个数', fontproperties=font)
 	plt.axis([0,1000,0,8])
 	plt.show()
 
+def all_count(fname):
+	with open(fname,'r') as f:
+		count = 0
+		f.readline()
+		records = f.readlines()
+		for record in records:
+			data = record.strip('\n').split('\t')
+			if data[3] in ['C_Data']:
+				count += 1
+		print count
 
 if __name__ == '__main__':
-	pull_count=read_and_count('app-delays-trace-pull.txt')
-	push_count=read_and_count('app-delays-trace-push.txt')
-	plot_time_count(re_load(pull_count),re_load(push_count))
+	# pull_count=read_and_count('app-delays-trace-pull-lost-5.txt')
+	# push_count=read_and_count('app-delays-trace-push-lost-5.txt')
+	# plot_time_count(re_load(pull_count),re_load(push_count))
+
+	all_count('app-delays-trace-pull-lost-5.txt')
+	all_count('app-delays-trace-push.txt')
