@@ -66,11 +66,11 @@ main(int argc, char* argv[])
   ndn::StackHelper ndnHelper;
   // Set CS size
   // ndnHelper.setCsSize(1);
-  // ndnHelper.SetDefaultRoutes(true);
+  ndnHelper.SetDefaultRoutes(true);
   ndnHelper.InstallAll();
 
   // Set BestRoute strategy
-  ndn::StrategyChoiceHelper::InstallAll("/", "/localhost/nfd/strategy/best-route");
+  ndn::StrategyChoiceHelper::InstallAll("/", "/localhost/nfd/strategy/broadcast");
 
   // Installing global routing interface on all nodes
   ndn::GlobalRoutingHelper ndnGlobalRoutingHelper;
@@ -84,18 +84,18 @@ main(int argc, char* argv[])
   // Install NDN applications
   std::string prefix = "/prefix";
 
-  ndn::AppHelper consumerHelper("ns3::ndn::ConsumerCbr");
+  ndn::AppHelper consumerHelper("ns3::ndn::ConsumerP");
   consumerHelper.SetPrefix(prefix);
-  consumerHelper.SetAttribute("Frequency", StringValue("100")); // 100 interests a second
+  consumerHelper.SetAttribute("Frequency", StringValue("1")); // 100 interests a second
   consumerHelper.SetAttribute("LifeTime", StringValue("1s"));
   // consumerHelper.SetAttribute("Randomize", StringValue("uniform"));
 
   consumerHelper.Install(consumerNodes);
   
-  ndn::AppHelper producerHelper("ns3::ndn::Producer");
+  ndn::AppHelper producerHelper("ns3::ndn::ProducerP");
   producerHelper.SetPrefix(prefix);
   producerHelper.SetAttribute("PayloadSize", StringValue("1024"));
-  //producerHelper.SetAttribute("Frequency", StringValue("1"));
+  producerHelper.SetAttribute("Frequency", StringValue("100"));
   //producerHelper.SetAttribute("Randomize", StringValue("exponential"));
   producerHelper.Install(producer);
 
@@ -103,7 +103,7 @@ main(int argc, char* argv[])
   ndnGlobalRoutingHelper.AddOrigins(prefix, producer);
 
   // Calculate and install FIBs
-  ndn::GlobalRoutingHelper::CalculateRoutes();
+  // ndn::GlobalRoutingHelper::CalculateRoutes();
 
   // ndn::L3RateTracer::InstallAll("../graphs/rate-trace.txt", Seconds(0.5) );
 
@@ -112,13 +112,13 @@ main(int argc, char* argv[])
   ndn::AppDelayTracerS::InstallAll("../graphs/app-delays-trace.txt");
 
  // The failure of the link connecting consumer and router will start from seconds 10.0 to 15.0
-  Simulator::Schedule(Seconds(10.0), ndn::LinkControlHelper::FailLinkByName, "R3", "R1");
-  ndn::GlobalRoutingHelper::CalculateRoutes();
-  Simulator::Schedule(Seconds(20.0), ndn::LinkControlHelper::UpLinkByName, "R3", "R1");
+  Simulator::Schedule(Seconds(0.0), ndn::LinkControlHelper::FailLinkByName, "R3", "R1");
 
-  Simulator::Schedule(Seconds(30.0), ndn::LinkControlHelper::FailLinkByName, "R2", "R1");
-  ndn::GlobalRoutingHelper::CalculateRoutes();
-  Simulator::Schedule(Seconds(40.0), ndn::LinkControlHelper::UpLinkByName, "R2", "R1");
+  Simulator::Schedule(Seconds(10.0), ndn::LinkControlHelper::FailLinkByName, "R2", "R1");
+
+  Simulator::Schedule(Seconds(10.0), ndn::LinkControlHelper::UpLinkByName, "R3", "R1");
+
+  Simulator::Schedule(Seconds(20.0), ndn::LinkControlHelper::UpLinkByName, "R2", "R1");
 
   // Simulator::Schedule(Seconds(50.0), ndn::LinkControlHelper::FailLinkByName, "R4", "R2");
   // Simulator::Schedule(Seconds(60.0), ndn::LinkControlHelper::UpLinkByName, "R4", "R2");
