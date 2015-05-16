@@ -94,8 +94,8 @@ main(int argc, char* argv[])
   
   ndn::AppHelper producerHelper("ns3::ndn::ProducerP");
   producerHelper.SetPrefix(prefix);
-  producerHelper.SetAttribute("PayloadSize", StringValue("1024"));
-  producerHelper.SetAttribute("Frequency", StringValue("100"));
+  producerHelper.SetAttribute("PayloadSize", StringValue("100"));
+  producerHelper.SetAttribute("Frequency", StringValue("300"));
   //producerHelper.SetAttribute("Randomize", StringValue("exponential"));
   producerHelper.Install(producer);
 
@@ -118,7 +118,7 @@ main(int argc, char* argv[])
 
   Simulator::Schedule(Seconds(10.0), ndn::LinkControlHelper::UpLinkByName, "R3", "R1");
 
-  Simulator::Schedule(Seconds(20.0), ndn::LinkControlHelper::UpLinkByName, "R2", "R1");
+  Simulator::Schedule(Seconds(30.0), ndn::LinkControlHelper::UpLinkByName, "R2", "R1");
 
   // Simulator::Schedule(Seconds(50.0), ndn::LinkControlHelper::FailLinkByName, "R4", "R2");
   // Simulator::Schedule(Seconds(60.0), ndn::LinkControlHelper::UpLinkByName, "R4", "R2");
